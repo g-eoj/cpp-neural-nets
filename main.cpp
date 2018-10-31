@@ -1,17 +1,20 @@
-// Train a two layer neural network classifier.
+// Train a neural network classifier.
 
 #include <ctime>
 #include <Eigen/Core>
+#include <iomanip>
 #include <iostream>
 #include <random>
 
 #include "nn.h"
-#include "two_layer_net.h"
 #include "utils.h"
 
 // TODO train/val split
 // TODO batch size
 // TODO random training example order
+// TODO Optimizer class
+// TODO backprop with true_probs that are not one hot
+// TODO dropout
 
 int main()
 {
@@ -23,60 +26,70 @@ int main()
     Eigen::MatrixXd x = csv.rightCols(csv.cols() - 1);
     Eigen::MatrixXd y = OneHot(csv.col(0).cast<int>());
 
-    // scale features to be between -1 and 1,
-    // should put this logic in a class so it can be reused to scale
+    // scale features to be between -1 and 1
+    // TODO put this logic in a class so it can be reused to scale
     // a validation/test set
     Eigen::RowVectorXd x_feature_maxs = x.colwise().maxCoeff();
     Eigen::RowVectorXd x_feature_mins = x.colwise().minCoeff();
-    x = (x.rowwise() - x_feature_mins).array().rowwise() / (x_feature_maxs - x_feature_mins).array();
+    x = (x.rowwise() - x_feature_mins).array().rowwise() /\
+        (x_feature_maxs - x_feature_mins).array();
     x = (2 * x).array() - 1;
 
     // define network
-    Hidden h1(x.cols(), 4);
-    Softmax softmax(4, y.cols());
-    TwoLayerNet net( h1, softmax );
+    Hidden h1(x.cols(), 6);
+    Hidden h2(6, 6);
+    Softmax softmax(6, y.cols());
+    NeuralNet net( &h1, &h2, &softmax );
 
-    // for helper params
-    ForwardPass fp;
-    BackwardPass bp;
-    Updates u;
-
-    // training
+    // train network
+    Eigen::MatrixXd probs;
     float lr = 0.8;
     int iterations = 100;
     double loss;
     double acc;
-    Eigen::VectorXi pred;
+    Eigen::VectorXi pred; // predicted class integer labels
     for ( int i = 1; i <= iterations; ++i )
     {
-        // store outputs in fp
-        loss = net.loss(x, y, fp);
+        probs = net.probs(x, y);
         if ( !(i % 10) )
         {
-            pred = Predict(fp.probs).array() + 1; //
-            acc = Accuracy(csv.col(0).cast<int>(), pred);
-            std::cout.width(5);
-            std::cout << i;
+            // metrics
+            loss = net.loss(probs, y);
+            pred = Predict(probs).array() + 1;
+            acc =  Accuracy(csv.col(0).cast<int>(), pred);
+            std::cout << std::setw(5) << i;
+            std::cout << std::fixed << std::setprecision(6);
             std::cout << " | loss: " << loss;
-            std::cout << " | acc: " << acc;
-            std::cout << std::endl;
-            std::cout.width();
+            std::cout << " | acc: " << acc << std::endl;
         }
 
-        // calculate gradients, store in bp
-        net.backpass(x, y, fp, bp);
-
 //        std::cout << "Numerical/Analytical Gradient Relative Error" << std::endl;
-//        std::cout << "W1: " << GradCheck(NetParams::W1, bp.dW1, net, x, y) << std::endl;
-//        std::cout << "b1: " << GradCheck(NetParams::b1, bp.db1, net, x, y) << std::endl;
-//        std::cout << "W2: " << GradCheck(NetParams::W2, bp.dW2, net, x, y) << std::endl;
-//        std::cout << "b2: " << GradCheck(NetParams::b2, bp.db2, net, x, y) << std::endl;
+//        for ( size_t layer_index = 0; layer_index < net.gradients().size(); ++layer_index )
+//        {
+//            std::cout << "W" << layer_index + 1 << ": ";
+//            std::cout << GradCheck(net, layer_index, LayerParams::WEIGHTS,\
+//                                   net.gradients().at(layer_index).W, x, y) << std::endl;
+//            std::cout << "b" << layer_index + 1 << ": ";
+//            std::cout << GradCheck(net, layer_index, LayerParams::BIAS,\
+//                                   net.gradients().at(layer_index).b, x, y) << std::endl;
+//        }
 
-        // SGD update
-        u.W1 = bp.dW1 * -lr;
-        u.b1 = bp.db1 * -lr;
-        u.W2 = bp.dW2 * -lr;
-        u.b2 = bp.db2 * -lr;
-        net.update(u);
+        // SGD
+        std::vector<LayerUpdate> sgd_update;
+        LayerUpdate sgd_layer_update;
+        for ( auto layer_gradients = net.gradients().begin();
+                   layer_gradients != net.gradients().end() ;
+                   ++layer_gradients )
+        {
+            sgd_layer_update.W = layer_gradients->W * -lr;
+            sgd_layer_update.b = layer_gradients->b * -lr;
+            sgd_update.push_back(sgd_layer_update);
+        }
+        net.update(sgd_update);
     }
+    // test forward pass
+    probs = net.probs(x);
+    pred = Predict(probs).array() + 1;
+    acc =  Accuracy(csv.col(0).cast<int>(), pred);
+    std::cout << "\nFinal Accuracy: " << acc << std::endl;
 }

@@ -2,14 +2,14 @@
 
 double TwoLayerNet::loss( const Eigen::MatrixXd & input, const Eigen::MatrixXd & y )
 {
-    return (_softmax.output(_h1.output(input)).array().log() *\
+    return (_softmax.forward_pass(_h1.forward_pass(input)).array().log() *\
             -y.array()).rowwise().sum().mean();
 }
 
 double TwoLayerNet::loss( const Eigen::MatrixXd & input, const Eigen::MatrixXd & y, ForwardPass & fp )
 {
-    fp.h1 = _h1.output(input);
-    fp.probs = _softmax.output(fp.h1);
+    fp.h1 = _h1.forward_pass(input);
+    fp.probs = _softmax.forward_pass(fp.h1);
     return (fp.probs.array().log() * -y.array()).rowwise().sum().mean();
 }
 
