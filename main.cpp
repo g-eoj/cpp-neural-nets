@@ -1,61 +1,73 @@
 // Train a neural network classifier.
 
-#include <ctime>
 #include <Eigen/Core>
 #include <iomanip>
 #include <iostream>
-#include <random>
 
 #include "nn.h"
 #include "utils.h"
 
-// TODO train/val split
+// TODO unit tests
 // TODO batch size
 // TODO random training example order
 // TODO Optimizer class
 // TODO backprop with true_probs that are not one hot
 // TODO dropout
+// TODO random seeds
 
 int main()
 {
-    srand( time(NULL) );
-
-    // load and prep data
     std::string path = "wine.data"; // https://archive.ics.uci.edu/ml/datasets/wine
     Eigen::MatrixXd csv = LoadCSV<Eigen::MatrixXd>(path);
-    Eigen::MatrixXd x = csv.rightCols(csv.cols() - 1);
-    Eigen::MatrixXd y = OneHot(csv.col(0).cast<int>());
+
+    // train/validation shuffle split
+    ShuffleRows(csv);
+    size_t val_size = 0.3 * csv.rows();
+    Eigen::MatrixXd x_train = csv.block(val_size, 1, csv.rows() - val_size, csv.cols() - 1);
+    Eigen::MatrixXd x_val = csv.block(0, 1, val_size, csv.cols() - 1);
+    Eigen::MatrixXd y_train = OneHot(csv.block(val_size, 0, csv.rows() - val_size, 1).cast<int>());
+    Eigen::MatrixXd y_val = OneHot(csv.block(0, 0, val_size, 1).cast<int>());
+    std::cout << "Train set size: " << y_train.rows() << std::endl;
+    std::cout << "  Val set size: " << y_val.rows() << std::endl;
+    std::cout << std::endl;
 
     // scale features to be between -1 and 1
-    // TODO put this logic in a class so it can be reused to scale
-    // a validation/test set
-    Eigen::RowVectorXd x_feature_maxs = x.colwise().maxCoeff();
-    Eigen::RowVectorXd x_feature_mins = x.colwise().minCoeff();
-    x = (x.rowwise() - x_feature_mins).array().rowwise() /\
+    // TODO put this logic in a class
+    Eigen::RowVectorXd x_feature_maxs = x_train.colwise().maxCoeff();
+    Eigen::RowVectorXd x_feature_mins = x_train.colwise().minCoeff();
+    x_train = (x_train.rowwise() - x_feature_mins).array().rowwise() /\
         (x_feature_maxs - x_feature_mins).array();
-    x = (2 * x).array() - 1;
+    x_train = (2 * x_train).array() - 1;
+    x_val = (x_val.rowwise() - x_feature_mins).array().rowwise() /\
+        (x_feature_maxs - x_feature_mins).array();
+    x_val = (2 * x_val).array() - 1;
 
     // define network
-    Hidden h1(x.cols(), 6);
+    Hidden h1(x_train.cols(), 6);
     Hidden h2(6, 6);
-    Softmax softmax(6, y.cols());
+    Softmax softmax(6, y_train.cols());
     NeuralNet net( &h1, &h2, &softmax );
 
     // train network
     int iterations = 100;
-    float lr = 0.8;
-    Eigen::MatrixXd probs;
+    float lr = 0.2;
+    Eigen::MatrixXd probs_train;
+    Eigen::MatrixXd probs_val;
     for ( int i = 1; i <= iterations; ++i )
     {
-        probs = net.probs(x, y);
+        probs_train = net.probs(x_train, y_train);
         if ( !(i % 10) )
         {
+            probs_val = net.probs(x_val);
             // metrics
             std::cout << std::setw(5) << i;
-            std::cout << std::fixed << std::setprecision(6);
-            std::cout << " | loss: " << net.loss(probs, y);
+            std::cout << std::fixed << std::setprecision(5);
+            std::cout << " | loss: " << net.loss(probs_train, y_train);
             std::cout << " | acc: ";
-            std::cout << Accuracy(csv.col(0).cast<int>(), Predict(probs).array() + 1);
+            std::cout << Accuracy(Predict(y_train), Predict(probs_train));
+            std::cout << " | val_loss: " << net.loss(probs_val, y_val);
+            std::cout << " | val_acc: ";
+            std::cout << Accuracy(Predict(y_val), Predict(probs_val));
             std::cout << std::endl;
         }
 
@@ -64,10 +76,10 @@ int main()
 //        {
 //            std::cout << "W" << layer_index + 1 << ": ";
 //            std::cout << GradCheck(net, layer_index, LayerParams::WEIGHTS,\
-//                                   net.gradients().at(layer_index).W, x, y) << std::endl;
+//                                   net.gradients().at(layer_index).W, x_train, y_train) << std::endl;
 //            std::cout << "b" << layer_index + 1 << ": ";
 //            std::cout << GradCheck(net, layer_index, LayerParams::BIAS,\
-//                                   net.gradients().at(layer_index).b, x, y) << std::endl;
+//                                   net.gradients().at(layer_index).b, x_train, y_train) << std::endl;
 //        }
 
         // SGD
@@ -84,8 +96,8 @@ int main()
         net.update(sgd_update);
     }
     // test forward pass
-    probs = net.probs(x);
-    std::cout << "\nFinal Accuracy: " ;
-    std::cout << Accuracy(csv.col(0).cast<int>(), Predict(probs).array() + 1);
+    probs_val = net.probs(x_val);
+    std::cout << "\nFinal Validation Accuracy: " ;
+    std::cout << Accuracy(Predict(y_val), Predict(probs_val));
     std::cout << std::endl;
 }

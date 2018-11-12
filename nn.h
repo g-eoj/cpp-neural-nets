@@ -3,8 +3,10 @@
 #ifndef _NN
 #define _NN
 
+#include <ctime>
 #include <Eigen/Core>
 #include <iostream>
+#include <random>
 #include <vector>
 
 enum class LayerParams { WEIGHTS, BIAS };

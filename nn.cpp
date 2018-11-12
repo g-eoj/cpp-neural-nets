@@ -2,6 +2,7 @@
 
 Layer::Layer( int input_size, int output_size )
 {
+    srand(time(NULL));
     double limit = sqrt(6. / ((double)input_size + (double)output_size)); // glorot uniform
     _W = Eigen::MatrixXd::Random(input_size, output_size).array() * limit;
     _b = Eigen::VectorXd::Zero(output_size);

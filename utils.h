@@ -96,4 +96,13 @@ double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
     return relatve_error;
 }
 
+void ShuffleRows( Eigen::MatrixXd & matrix )
+{
+    Eigen::PermutationMatrix<Eigen::Dynamic> permutation(matrix.rows());
+    permutation.setIdentity();
+    std::random_shuffle(permutation.indices().data(),\
+                        permutation.indices().data()+permutation.indices().size());
+    matrix = permutation * matrix;
+}
+
 #endif
