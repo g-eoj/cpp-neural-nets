@@ -53,7 +53,7 @@ LayerGradients Softmax::backward_pass( const Eigen::MatrixXd & input, const Eige
     return gradients;
 }
 
-Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input )
+Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input ) const
 {
     Eigen::MatrixXd output = input;
     for ( auto layer = _layers.begin(); layer != _layers.end(); ++layer )
@@ -72,12 +72,13 @@ Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input, const Eigen::Ma
     {
         inputs.push_back((**layer).forward_pass(inputs.back()));
     }
-    Eigen::MatrixXd probs = inputs.back();
-    inputs.pop_back();
 
     //backward pass
     size_t layer_index = _layers.size() - 1;
-    _gradients.at(layer_index) = _layers.back()->backward_pass(inputs.back(), probs, true_probs);
+    // softmax
+    _gradients.at(layer_index) = _layers.at(layer_index)->\
+        backward_pass(inputs.at(layer_index), inputs.back(), true_probs);
+    // hidden layers
     while ( layer_index != 0 )
     {
         layer_index -= 1;
@@ -87,7 +88,7 @@ Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input, const Eigen::Ma
                           _gradients.at(layer_index + 1).input);
     }
 
-    return probs;
+    return inputs.back();
 }
 
 double NeuralNet::loss( const Eigen::MatrixXd & probs, const Eigen::MatrixXd & true_probs ) const

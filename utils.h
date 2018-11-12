@@ -63,9 +63,9 @@ double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
                   const Eigen::MatrixXd analytic_grad,\
                   const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs)
 {
-    double h = 1e-06;
-    int rc = analytic_grad.rows();
-    int cc = analytic_grad.cols();
+    const double h = 1e-06;
+    const int rc = analytic_grad.rows();
+    const int cc = analytic_grad.cols();
     Eigen::MatrixXd numeric_grad(rc, cc);
     Eigen::MatrixXd h_matrix = Eigen::MatrixXd::Zero(rc, cc);
     double lp_plus_h;

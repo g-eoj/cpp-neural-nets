@@ -42,25 +42,21 @@ int main()
     NeuralNet net( &h1, &h2, &softmax );
 
     // train network
-    Eigen::MatrixXd probs;
-    float lr = 0.8;
     int iterations = 100;
-    double loss;
-    double acc;
-    Eigen::VectorXi pred; // predicted class integer labels
+    float lr = 0.8;
+    Eigen::MatrixXd probs;
     for ( int i = 1; i <= iterations; ++i )
     {
         probs = net.probs(x, y);
         if ( !(i % 10) )
         {
             // metrics
-            loss = net.loss(probs, y);
-            pred = Predict(probs).array() + 1;
-            acc =  Accuracy(csv.col(0).cast<int>(), pred);
             std::cout << std::setw(5) << i;
             std::cout << std::fixed << std::setprecision(6);
-            std::cout << " | loss: " << loss;
-            std::cout << " | acc: " << acc << std::endl;
+            std::cout << " | loss: " << net.loss(probs, y);
+            std::cout << " | acc: ";
+            std::cout << Accuracy(csv.col(0).cast<int>(), Predict(probs).array() + 1);
+            std::cout << std::endl;
         }
 
 //        std::cout << "Numerical/Analytical Gradient Relative Error" << std::endl;
@@ -89,7 +85,7 @@ int main()
     }
     // test forward pass
     probs = net.probs(x);
-    pred = Predict(probs).array() + 1;
-    acc =  Accuracy(csv.col(0).cast<int>(), pred);
-    std::cout << "\nFinal Accuracy: " << acc << std::endl;
+    std::cout << "\nFinal Accuracy: " ;
+    std::cout << Accuracy(csv.col(0).cast<int>(), Predict(probs).array() + 1);
+    std::cout << std::endl;
 }

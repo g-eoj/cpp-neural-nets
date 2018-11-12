@@ -36,7 +36,9 @@ class Layer
         virtual ~Layer() {}
         const Eigen::MatrixXd & W() const { return _W; }
         const Eigen::VectorXd & b() const { return _b; }
+        // Return layer output for given input.
         virtual Eigen::MatrixXd forward_pass( const Eigen::MatrixXd &) const = 0;
+        // Return gradients with respect to layer weights, bias, and input.
         virtual LayerGradients backward_pass( const Eigen::MatrixXd & , const Eigen::MatrixXd &, const Eigen::MatrixXd & ) const = 0;
         // Add update to WEIGHTS or BIAS.
         void update( LayerParams lp, const Eigen::MatrixXd & update );
@@ -85,7 +87,7 @@ class NeuralNet
         template<typename... L>
         NeuralNet( L... layers ) : _layers { layers... } { _gradients.resize(_layers.size()); }
         // Perform forward pass and return probability of input belonging to each class.
-        Eigen::MatrixXd probs( const Eigen::MatrixXd & input );
+        Eigen::MatrixXd probs( const Eigen::MatrixXd & input ) const;
         // Perform forward pass, backward pass, update _gradients and return
         // probability of input belonging to each class.
         Eigen::MatrixXd probs( const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs );
