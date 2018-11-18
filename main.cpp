@@ -43,6 +43,7 @@ int main()
     x_val = (2 * x_val).array() - 1;
 
     // define network
+    srand(time(NULL));
     Hidden h1(x_train.cols(), 6);
     Hidden h2(6, 6);
     Softmax softmax(6, y_train.cols());
