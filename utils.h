@@ -31,11 +31,12 @@ M LoadCSV( const std::string & path )
 // One hot encode a vector of integers representing class labels.
 Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels )
 {
-    unsigned int numLabels = 1 + labels.maxCoeff() - labels.minCoeff();
+    unsigned int min_label = labels.minCoeff();
+    unsigned int numLabels = 1 + labels.maxCoeff() - min_label;
     Eigen::MatrixXd oh = Eigen::MatrixXd::Zero(labels.size(), numLabels);
-    for ( int l = 0; l < labels.size(); ++l )
+    for ( size_t l = 0; l < labels.size(); ++l )
     {
-        oh(l, labels(l) - 1) = 1;
+        oh(l, labels(l) - min_label) = 1;
     }
     return oh;
 }
@@ -44,7 +45,7 @@ Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels )
 Eigen::VectorXi Predict( const Eigen::MatrixXd & probs )
 {
     Eigen::VectorXi Predictions(probs.rows());
-    for ( int r = 0; r < probs.rows(); ++r )
+    for ( size_t r = 0; r < probs.rows(); ++r )
     {
         probs.row(r).maxCoeff(&Predictions(r));
     }
@@ -56,22 +57,28 @@ double Accuracy( const Eigen::VectorXi & yTrue, const Eigen::VectorXi & yPred )
     return (double)((yTrue - yPred).array() == 0).count() / yPred.rows();
 }
 
+double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon = 1e-06 )
+{
+    return ( (M1 - M2).array().abs() /\
+             (M1.array().abs() + M2.array().abs() + epsilon).maxCoeff() ).maxCoeff();
+}
+
 // Returns relative error between numerical gradient and analytic gradient.
 // This function is computationally expensive. The only reason to use it is to
-// check if Layer::backward_pass() is implemented correctly.
+// check if each Layer::backward_pass() is implemented correctly. Update the
+// gradients in `net` with `net.probs(input, true_probs)` before passing.
 double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
-                  const Eigen::MatrixXd analytic_grad,\
-                  const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs)
+                  const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs,
+                  const double & h = 1e-06 )
 {
-    const double h = 1e-06;
-    const int rc = analytic_grad.rows();
-    const int cc = analytic_grad.cols();
+    const LayerGradients & analytic_grads = net.gradients().at(layer_index);
+    const size_t rc = ( lp == LayerParams::WEIGHTS ) ? analytic_grads.W.rows() : analytic_grads.b.size();
+    const size_t cc = ( lp == LayerParams::WEIGHTS ) ? analytic_grads.W.cols() : 1;
     Eigen::MatrixXd numeric_grad(rc, cc);
     Eigen::MatrixXd h_matrix = Eigen::MatrixXd::Zero(rc, cc);
     double lp_plus_h;
     double lp_minus_h;
-
-    for ( int i = 0; i < rc * cc; ++i )
+    for ( size_t i = 0; i < rc * cc; ++i )
     {
         h_matrix(i) = h;
         net.update(layer_index, lp, h_matrix);
@@ -88,12 +95,7 @@ double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
 
         numeric_grad(i) = (lp_plus_h - lp_minus_h) / (2 * h);
     }
-
-    double relatve_error;
-    relatve_error = ( (numeric_grad - analytic_grad).array().abs() /\
-                      (numeric_grad.array().abs() +\
-                       analytic_grad.array().abs() + h).maxCoeff() ).maxCoeff();
-    return relatve_error;
+    return ( lp == LayerParams::WEIGHTS ) ? RelativeError(numeric_grad, analytic_grads.W) : RelativeError(numeric_grad, analytic_grads.b);
 }
 
 void ShuffleRows( Eigen::MatrixXd & matrix )

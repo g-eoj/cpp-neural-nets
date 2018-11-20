@@ -7,11 +7,9 @@
 #include "nn.h"
 #include "utils.h"
 
-// TODO unit tests
 // TODO batch size
 // TODO random training example order
 // TODO Optimizer class
-// TODO backprop with true_probs that are not one hot
 // TODO dropout
 // TODO random seeds
 
@@ -72,17 +70,6 @@ int main()
             std::cout << std::endl;
         }
 
-//        std::cout << "Numerical/Analytical Gradient Relative Error" << std::endl;
-//        for ( size_t layer_index = 0; layer_index < net.gradients().size(); ++layer_index )
-//        {
-//            std::cout << "W" << layer_index + 1 << ": ";
-//            std::cout << GradCheck(net, layer_index, LayerParams::WEIGHTS,\
-//                                   net.gradients().at(layer_index).W, x_train, y_train) << std::endl;
-//            std::cout << "b" << layer_index + 1 << ": ";
-//            std::cout << GradCheck(net, layer_index, LayerParams::BIAS,\
-//                                   net.gradients().at(layer_index).b, x_train, y_train) << std::endl;
-//        }
-
         // SGD
         std::vector<LayerUpdate> sgd_update;
         LayerUpdate sgd_layer_update;
@@ -96,7 +83,6 @@ int main()
         }
         net.update(sgd_update);
     }
-    // test forward pass
     probs_val = net.probs(x_val);
     std::cout << "\nFinal Validation Accuracy: " ;
     std::cout << Accuracy(Predict(y_val), Predict(probs_val));
