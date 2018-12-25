@@ -90,6 +90,15 @@ int main()
         ShuffleRows(M_shuf);
         test.run("ShuffleRows", ! M.isApprox(M_shuf) &&\
                  M.colwise().sum().isApprox(M_shuf.colwise().sum()));
+        // MinMaxScaler
+        MinMaxScaler default_scaler;
+        default_scaler.fit(M);
+        default_scaler.transform(M);
+        test.run("MinMaxScaler Default Range", (M.minCoeff() == 0) && (M.maxCoeff() == 1));
+        MinMaxScaler scaler(-2, 2);
+        scaler.fit(M_shuf);
+        scaler.transform(M_shuf);
+        test.run("MinMaxScaler [-2, 2]", (M_shuf.minCoeff() == -2) && (M_shuf.maxCoeff() == 2));
     }
     total_passed += test.pass_count();
     total_failed += test.fail_count();

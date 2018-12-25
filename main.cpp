@@ -30,15 +30,10 @@ int main()
     std::cout << std::endl;
 
     // scale features to be between -1 and 1
-    // TODO put this logic in a class
-    Eigen::RowVectorXd x_feature_maxs = x_train.colwise().maxCoeff();
-    Eigen::RowVectorXd x_feature_mins = x_train.colwise().minCoeff();
-    x_train = (x_train.rowwise() - x_feature_mins).array().rowwise() /\
-        (x_feature_maxs - x_feature_mins).array();
-    x_train = (2 * x_train).array() - 1;
-    x_val = (x_val.rowwise() - x_feature_mins).array().rowwise() /\
-        (x_feature_maxs - x_feature_mins).array();
-    x_val = (2 * x_val).array() - 1;
+    MinMaxScaler scaler(-1, 1);
+    scaler.fit(x_train);
+    scaler.transform(x_train);
+    scaler.transform(x_val);
 
     // define network
     srand(time(NULL));

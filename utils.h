@@ -2,6 +2,7 @@
 #define _UTILS
 
 #include <Eigen/Core>
+#include <exception>
 #include <fstream>
 #include <vector>
 
@@ -97,6 +98,37 @@ double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
     }
     return ( lp == LayerParams::WEIGHTS ) ? RelativeError(numeric_grad, analytic_grads.W) : RelativeError(numeric_grad, analytic_grads.b);
 }
+
+// Scale feature data.
+class MinMaxScaler
+{
+    bool _fitted;
+    const double _min;
+    const double _max;
+    Eigen::RowVectorXd _data_mins;
+    Eigen::RowVectorXd _data_maxs;
+public:
+    // Fitted feature data is scaled to the range [min, max].
+    MinMaxScaler ( const double min=0, const double max=1 ) : _min(min), _max(max) {};
+    // Compute minimum and maximum feature values to use for scaling.
+    void fit ( const Eigen::MatrixXd & data )
+    {
+        _data_mins = data.colwise().maxCoeff();
+        _data_maxs = data.colwise().minCoeff();
+        _fitted = true;
+    }
+    // Scale feature data according to fitted features and range.
+    void transform ( Eigen::MatrixXd & data ) const
+    {
+        if ( ! _fitted )
+        {
+            throw std::runtime_error("MinMaxScaler needs to be fitted before transform.");
+        }
+        data = (data.rowwise() - _data_mins).array().rowwise() /\
+            (_data_maxs - _data_mins).array();
+        data = data.array() * (_max - _min) + _min;
+    }
+};
 
 void ShuffleRows( Eigen::MatrixXd & matrix )
 {
