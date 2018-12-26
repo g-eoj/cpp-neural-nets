@@ -6,6 +6,27 @@
 #include <fstream>
 #include <vector>
 
+#include "nn.h"
+
+// ---Preprocessing---
+
+// Scale feature data.
+class MinMaxScaler
+{
+    bool _fitted;
+    const double _min;
+    const double _max;
+    Eigen::RowVectorXd _data_mins;
+    Eigen::RowVectorXd _data_maxs;
+public:
+    // Fitted feature data is scaled to the range [min, max].
+    MinMaxScaler ( const double min=0, const double max=1 ) : _min(min), _max(max) {};
+    // Compute minimum and maximum feature values to use for scaling.
+    void fit ( const Eigen::MatrixXd & data );
+    // Scale feature data according to fitted features and range.
+    void transform ( Eigen::MatrixXd & data ) const;
+};
+
 // Load a csv into an Eigen matrix.
 // Credit to user357269 on stackoverflow.
 template<typename M>
@@ -30,39 +51,15 @@ M LoadCSV( const std::string & path )
 }
 
 // One hot encode a vector of integers representing class labels.
-Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels )
-{
-    unsigned int min_label = labels.minCoeff();
-    unsigned int numLabels = 1 + labels.maxCoeff() - min_label;
-    Eigen::MatrixXd oh = Eigen::MatrixXd::Zero(labels.size(), numLabels);
-    for ( size_t l = 0; l < labels.size(); ++l )
-    {
-        oh(l, labels(l) - min_label) = 1;
-    }
-    return oh;
-}
+Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels );
 
-// Predict class integer label based on highest probability from forward pass.
-Eigen::VectorXi Predict( const Eigen::MatrixXd & probs )
-{
-    Eigen::VectorXi Predictions(probs.rows());
-    for ( size_t r = 0; r < probs.rows(); ++r )
-    {
-        probs.row(r).maxCoeff(&Predictions(r));
-    }
-    return Predictions;
-}
+void ShuffleRows( Eigen::MatrixXd & matrix );
 
-double Accuracy( const Eigen::VectorXi & yTrue, const Eigen::VectorXi & yPred )
-{
-    return (double)((yTrue - yPred).array() == 0).count() / yPred.rows();
-}
+// ---End Preprocessing---
 
-double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon = 1e-06 )
-{
-    return ( (M1 - M2).array().abs() /\
-             (M1.array().abs() + M2.array().abs() + epsilon).maxCoeff() ).maxCoeff();
-}
+// ---Evaluation---
+
+double Accuracy( const Eigen::VectorXi & yTrue, const Eigen::VectorXi & yPred );
 
 // Returns relative error between numerical gradient and analytic gradient.
 // This function is computationally expensive. The only reason to use it is to
@@ -70,73 +67,13 @@ double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, co
 // gradients in `net` with `net.probs(input, true_probs)` before passing.
 double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
                   const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs,
-                  const double & h = 1e-06 )
-{
-    const LayerGradients & analytic_grads = net.gradients().at(layer_index);
-    const size_t rc = ( lp == LayerParams::WEIGHTS ) ? analytic_grads.W.rows() : analytic_grads.b.size();
-    const size_t cc = ( lp == LayerParams::WEIGHTS ) ? analytic_grads.W.cols() : 1;
-    Eigen::MatrixXd numeric_grad(rc, cc);
-    Eigen::MatrixXd h_matrix = Eigen::MatrixXd::Zero(rc, cc);
-    double lp_plus_h;
-    double lp_minus_h;
-    for ( size_t i = 0; i < rc * cc; ++i )
-    {
-        h_matrix(i) = h;
-        net.update(layer_index, lp, h_matrix);
-        lp_plus_h = net.loss(net.probs(input), true_probs);
+                  const double & h = 1e-06 );
 
-        h_matrix(i) = -h * 2;
-        net.update(layer_index, lp, h_matrix);
-        lp_minus_h = net.loss(net.probs(input), true_probs);
+// Predict class integer label based on highest probability from forward pass.
+Eigen::VectorXi Predict( const Eigen::MatrixXd & probs );
 
-        h_matrix(i) = h;
-        net.update(layer_index, lp, h_matrix);
+double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon = 1e-06 );
 
-        h_matrix(i) = 0;
-
-        numeric_grad(i) = (lp_plus_h - lp_minus_h) / (2 * h);
-    }
-    return ( lp == LayerParams::WEIGHTS ) ? RelativeError(numeric_grad, analytic_grads.W) : RelativeError(numeric_grad, analytic_grads.b);
-}
-
-// Scale feature data.
-class MinMaxScaler
-{
-    bool _fitted;
-    const double _min;
-    const double _max;
-    Eigen::RowVectorXd _data_mins;
-    Eigen::RowVectorXd _data_maxs;
-public:
-    // Fitted feature data is scaled to the range [min, max].
-    MinMaxScaler ( const double min=0, const double max=1 ) : _min(min), _max(max) {};
-    // Compute minimum and maximum feature values to use for scaling.
-    void fit ( const Eigen::MatrixXd & data )
-    {
-        _data_mins = data.colwise().maxCoeff();
-        _data_maxs = data.colwise().minCoeff();
-        _fitted = true;
-    }
-    // Scale feature data according to fitted features and range.
-    void transform ( Eigen::MatrixXd & data ) const
-    {
-        if ( ! _fitted )
-        {
-            throw std::runtime_error("MinMaxScaler needs to be fitted before transform.");
-        }
-        data = (data.rowwise() - _data_mins).array().rowwise() /\
-            (_data_maxs - _data_mins).array();
-        data = data.array() * (_max - _min) + _min;
-    }
-};
-
-void ShuffleRows( Eigen::MatrixXd & matrix )
-{
-    Eigen::PermutationMatrix<Eigen::Dynamic> permutation(matrix.rows());
-    permutation.setIdentity();
-    std::random_shuffle(permutation.indices().data(),\
-                        permutation.indices().data()+permutation.indices().size());
-    matrix = permutation * matrix;
-}
+// ---End Evaluation---
 
 #endif
