@@ -5,11 +5,10 @@
 #include <iostream>
 
 #include "nn.h"
+#include "optimizers.h"
 #include "utils.h"
 
 // TODO batch size
-// TODO random training example order
-// TODO Optimizer class
 // TODO dropout
 // TODO random seeds
 
@@ -37,21 +36,23 @@ int main()
 
     // define network
     srand(time(NULL));
-    Hidden h1(x_train.cols(), 6);
-    Hidden h2(6, 6);
-    Softmax softmax(6, y_train.cols());
-    NeuralNet net( &h1, &h2, &softmax );
+    Hidden h1(x_train.cols(), 10);
+    Softmax softmax(10, y_train.cols());
+    NeuralNet net( &h1, &softmax );
 
     // train network
-    int iterations = 100;
+    size_t iterations = 100;
     float lr = 0.2;
+    float momentum = 0.5;
     Eigen::MatrixXd probs_train;
     Eigen::MatrixXd probs_val;
-    for ( int i = 1; i <= iterations; ++i )
+    SGD sgd(net, lr, momentum);
+    for ( size_t i = 1; i <= iterations; ++i )
     {
-        probs_train = net.probs(x_train, y_train);
+        sgd.fit(net, x_train, y_train);
         if ( !(i % 10) )
         {
+            probs_train = net.probs(x_train);
             probs_val = net.probs(x_val);
             // metrics
             std::cout << std::setw(5) << i;
@@ -64,19 +65,11 @@ int main()
             std::cout << Accuracy(Predict(y_val), Predict(probs_val));
             std::cout << std::endl;
         }
-
-        // SGD
-        std::vector<LayerUpdate> sgd_update;
-        LayerUpdate sgd_layer_update;
-        for ( auto layer_gradients = net.gradients().begin();
-                   layer_gradients != net.gradients().end() ;
-                   ++layer_gradients )
+        if ( i == iterations / 2 )
         {
-            sgd_layer_update.W = layer_gradients->W * -lr;
-            sgd_layer_update.b = layer_gradients->b * -lr;
-            sgd_update.push_back(sgd_layer_update);
+            sgd.lr(sgd.lr() / 2);
+            sgd.momentum(0.9);
         }
-        net.update(sgd_update);
     }
     probs_val = net.probs(x_val);
     std::cout << "\nFinal Validation Accuracy: " ;

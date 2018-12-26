@@ -203,9 +203,9 @@ int main()
         net.update(0, LayerParams::BIAS, -b1);
         b1 << 0, 0;
         test.run("Update Single Parameter", h1.b().isApprox(b1));
-        test.run("Probs", net.probs(x).isApprox(softmax_out) &&\
-                          net.probs(x, y).isApprox(softmax_out));
+        test.run("Probs", net.probs(x).isApprox(softmax_out));
         test.run("Loss", abs(net.loss(softmax_out, y) - loss) < 1e-16);
+        net.gradients(x, y);
         test.run("Gradients", net.gradients().at(0).W.isApprox(W1_grad) &&\
                               net.gradients().at(0).b.isApprox(b1_grad) &&\
                               net.gradients().at(1).W.isApprox(W2_grad) &&\
@@ -230,9 +230,9 @@ int main()
         Hidden h1(X.cols(), hidden_size);
         Softmax softmax(hidden_size, y_oh.cols());
         NeuralNet two_layer_net( &h1, &softmax );
-        test.run("Forward Passes Match", two_layer_net.probs(X).isApprox(two_layer_net.probs(X, y_oh)));
         test.run("Initial Loss", two_layer_net.loss(two_layer_net.probs(X), y_oh) + log(1. / num_classes) < 0.2);
         double epsilon = 1e-08;
+        two_layer_net.gradients(X, y_oh);
         test.run("Gradient Check W1", GradCheck(two_layer_net, 0, LayerParams::WEIGHTS, X, y_oh) < epsilon);
         test.run("Gradient Check b1", GradCheck(two_layer_net, 0, LayerParams::BIAS, X, y_oh) < epsilon);
         test.run("Gradient Check W2", GradCheck(two_layer_net, 1, LayerParams::WEIGHTS, X, y_oh) < epsilon);

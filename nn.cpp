@@ -1,6 +1,6 @@
 #include "nn.h"
 
-Layer::Layer( int input_size, int output_size )
+Layer::Layer( unsigned int input_size, unsigned int output_size )
 {
     double limit = sqrt(6. / ((double)input_size + (double)output_size)); // glorot uniform
     _W = Eigen::MatrixXd::Random(input_size, output_size).array() * limit;
@@ -63,7 +63,7 @@ Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input ) const
     return output;
 }
 
-Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs )
+void NeuralNet::gradients( const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs )
 {
     // forward pass
     std::vector<Eigen::MatrixXd> inputs;
@@ -87,8 +87,6 @@ Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input, const Eigen::Ma
                           inputs.at(layer_index + 1),\
                           _gradients.at(layer_index + 1).input);
     }
-
-    return inputs.back();
 }
 
 double NeuralNet::loss( const Eigen::MatrixXd & probs, const Eigen::MatrixXd & true_probs ) const

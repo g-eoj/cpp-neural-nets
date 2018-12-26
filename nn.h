@@ -33,7 +33,7 @@ class Layer
     Eigen::VectorXd _b;
     Layer();
     protected:
-        Layer( int input_size, int output_size );
+        Layer( unsigned int input_size, unsigned int output_size );
     public:
         virtual ~Layer() {}
         const Eigen::MatrixXd & W() const { return _W; }
@@ -51,7 +51,7 @@ class Hidden : public Layer
 {
     Hidden();
     public:
-        Hidden( int input_size, int output_size ) :\
+        Hidden( unsigned int input_size, unsigned int output_size ) :\
             Layer(input_size, output_size) {}
         // Return layer output for given input.
         Eigen::MatrixXd forward_pass( const Eigen::MatrixXd & input ) const;
@@ -64,7 +64,7 @@ class Softmax : public Layer
 {
     Softmax();
     public:
-        Softmax( int input_size, int output_size ) :\
+        Softmax( unsigned int input_size, unsigned int output_size ) :\
             Layer(input_size, output_size) {}
         // Return softmax conditional probabilities for given input.
         Eigen::MatrixXd forward_pass( const Eigen::MatrixXd & input ) const;
@@ -80,6 +80,7 @@ class NeuralNet
     std::vector<Layer *> _layers;
     std::vector<LayerGradients> _gradients;
     NeuralNet();
+    friend class Optimizer;
     public:
         // There can be any number of hidden layers as long as input and output
         // dimensions match. The last layer should always of type Softmax.
@@ -90,9 +91,8 @@ class NeuralNet
         NeuralNet( L... layers ) : _layers { layers... } { _gradients.resize(_layers.size()); }
         // Perform forward pass and return probability of input belonging to each class.
         Eigen::MatrixXd probs( const Eigen::MatrixXd & input ) const;
-        // Perform forward pass, backward pass, update _gradients and return
-        // probability of input belonging to each class.
-        Eigen::MatrixXd probs( const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs );
+        // Perform forward pass and backward pass, then update _gradients.
+        void gradients( const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs );
         const std::vector<LayerGradients> & gradients() const { return _gradients; }
         // Cross entropy loss.
         double loss( const Eigen::MatrixXd & probs, const Eigen::MatrixXd & true_probs ) const;
