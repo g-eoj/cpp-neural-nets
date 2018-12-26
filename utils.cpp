@@ -42,6 +42,24 @@ void ShuffleRows( Eigen::MatrixXd & matrix, const unsigned int random_seed )
     matrix = permutation * matrix;
 }
 
+void TrainTestSplit( Eigen::MatrixXd X, Eigen::MatrixXd y,\
+                     Eigen::MatrixXd & X_train, Eigen::MatrixXd & X_test,\
+                     Eigen::MatrixXd & y_train, Eigen::MatrixXd & y_test,\
+                     float test_prop, bool shuffle, const unsigned int random_seed )
+{
+    if ( shuffle )
+    {
+        ShuffleRows(X, random_seed);
+        ShuffleRows(y, random_seed);
+    }
+    size_t test_size = test_prop * y.rows();
+    size_t train_size = y.rows() - test_size;
+    X_train = X.topRows(train_size);
+    X_test = X.bottomRows(test_size);
+    y_train = y.topRows(train_size);
+    y_test = y.bottomRows(test_size);
+}
+
 // ---End Preprocessing---
 
 // ---Evaluation---

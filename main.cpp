@@ -10,7 +10,6 @@
 
 // TODO batch size
 // TODO dropout
-// TODO random seeds
 
 int main()
 {
@@ -18,12 +17,12 @@ int main()
     Eigen::MatrixXd csv = LoadCSV<Eigen::MatrixXd>(path);
 
     // train/validation shuffle split
-    ShuffleRows(csv);
-    size_t val_size = 0.3 * csv.rows();
-    Eigen::MatrixXd x_train = csv.block(val_size, 1, csv.rows() - val_size, csv.cols() - 1);
-    Eigen::MatrixXd x_val = csv.block(0, 1, val_size, csv.cols() - 1);
-    Eigen::MatrixXd y_train = OneHot(csv.block(val_size, 0, csv.rows() - val_size, 1).cast<int>());
-    Eigen::MatrixXd y_val = OneHot(csv.block(0, 0, val_size, 1).cast<int>());
+    Eigen::MatrixXd x_train;
+    Eigen::MatrixXd x_val;
+    Eigen::MatrixXd y_train;
+    Eigen::MatrixXd y_val;
+    TrainTestSplit(csv.rightCols(csv.cols() - 1), OneHot(csv.leftCols(1).cast<int>()),\
+                     x_train, x_val, y_train, y_val, 0.3);
     std::cout << "Train set size: " << y_train.rows() << std::endl;
     std::cout << "  Val set size: " << y_val.rows() << std::endl;
     std::cout << std::endl;
@@ -42,7 +41,7 @@ int main()
 
     // train network
     size_t iterations = 100;
-    float lr = 0.2;
+    float lr = 0.1;
     float momentum = 0.5;
     Eigen::MatrixXd probs_train;
     Eigen::MatrixXd probs_val;

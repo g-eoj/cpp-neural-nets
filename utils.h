@@ -55,6 +55,13 @@ Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels );
 
 void ShuffleRows( Eigen::MatrixXd & matrix, const unsigned int random_seed=1 );
 
+// Split features and corresponding labels
+// with optional shuffle (not stratified) before split.
+void TrainTestSplit( Eigen::MatrixXd X, Eigen::MatrixXd y,\
+                     Eigen::MatrixXd & X_train, Eigen::MatrixXd & X_test,\
+                     Eigen::MatrixXd & y_train, Eigen::MatrixXd & y_test,\
+                     float test_prop, bool shuffle=true, const unsigned int random_seed=1 );
+
 // ---End Preprocessing---
 
 // ---Evaluation---

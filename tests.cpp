@@ -101,6 +101,15 @@ int main()
         scaler.fit(M_shuf);
         scaler.transform(M_shuf);
         test.run("MinMaxScaler [-2, 2]", (M_shuf.minCoeff() == -2) && (M_shuf.maxCoeff() == 2));
+        // TrainTestSplit
+        Eigen::MatrixXd X_train;
+        Eigen::MatrixXd X_test;
+        Eigen::MatrixXd y_train;
+        Eigen::MatrixXd y_test;
+        unsigned int test_size = 0.3 * M.rows();
+        TrainTestSplit(M, M, X_train, X_test, y_train, y_test, 0.3);
+        test.run("TrainTestSplit", (X_train == y_train) && (X_test == y_test) &&\
+                 (X_train.rows() == M.rows() - test_size) && (X_test.rows() == test_size));
     }
     total_passed += test.pass_count();
     total_failed += test.fail_count();
