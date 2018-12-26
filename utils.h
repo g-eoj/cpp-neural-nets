@@ -53,7 +53,7 @@ M LoadCSV( const std::string & path )
 // One hot encode a vector of integers representing class labels.
 Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels );
 
-void ShuffleRows( Eigen::MatrixXd & matrix );
+void ShuffleRows( Eigen::MatrixXd & matrix, const unsigned int random_seed=1 );
 
 // ---End Preprocessing---
 

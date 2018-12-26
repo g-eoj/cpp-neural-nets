@@ -87,8 +87,10 @@ int main()
         // ShuffleRows
         Eigen::MatrixXd M = Eigen::MatrixXd::Random(7, 5);
         Eigen::MatrixXd M_shuf = M;
+        Eigen::MatrixXd M_shuf_2 = M;
         ShuffleRows(M_shuf);
-        test.run("ShuffleRows", ! M.isApprox(M_shuf) &&\
+        ShuffleRows(M_shuf_2, 1);
+        test.run("ShuffleRows", ! M.isApprox(M_shuf) && M_shuf.isApprox(M_shuf_2) &&\
                  M.colwise().sum().isApprox(M_shuf.colwise().sum()));
         // MinMaxScaler
         MinMaxScaler default_scaler;

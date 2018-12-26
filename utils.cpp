@@ -32,10 +32,11 @@ Eigen::MatrixXd OneHot( const Eigen::VectorXi & labels )
     return oh;
 }
 
-void ShuffleRows( Eigen::MatrixXd & matrix )
+void ShuffleRows( Eigen::MatrixXd & matrix, const unsigned int random_seed )
 {
     Eigen::PermutationMatrix<Eigen::Dynamic> permutation(matrix.rows());
     permutation.setIdentity();
+    srand(random_seed);
     std::random_shuffle(permutation.indices().data(),\
                         permutation.indices().data()+permutation.indices().size());
     matrix = permutation * matrix;
