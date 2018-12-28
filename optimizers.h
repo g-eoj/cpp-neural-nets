@@ -8,8 +8,9 @@ class Optimizer
     Optimizer();
 protected:
     double _lr;
+    NeuralNet & _net;
     std::vector<LayerUpdate> _update;
-    Optimizer( const NeuralNet & net, const double lr ) : _lr(lr)
+    Optimizer( NeuralNet & net, const double lr ) : _lr(lr), _net(net)
     {
         LayerUpdate layer_update;
         for ( auto layer = net._layers.begin(); layer != net._layers.end(); ++layer )
@@ -24,17 +25,18 @@ protected:
     virtual void _calculate_update( const size_t layer_index, const LayerGradients & gradients ) = 0;
 public:
     virtual ~Optimizer() {}
-    void fit( NeuralNet & net, const Eigen::MatrixXd & X, const Eigen::MatrixXd & y )
+    void fit( const Eigen::MatrixXd & X, const Eigen::MatrixXd & y )
     {
-        net.gradients(X, y);
-        for ( size_t layer_index = 0; layer_index < net.gradients().size(); ++layer_index)
+        _net.gradients(X, y);
+        for ( size_t layer_index = 0; layer_index < _net.gradients().size(); ++layer_index)
         {
-            _calculate_update(layer_index, net.gradients().at(layer_index));
+            _calculate_update(layer_index, _net.gradients().at(layer_index));
         }
-        net.update(_update);
+        _net.update(_update);
     }
     const double & lr() const { return _lr; }
     void lr( const double & lr ) { _lr = lr; }
+    const NeuralNet & net() const { return _net; }
 };
 
 class SGD : public Optimizer {
@@ -45,7 +47,7 @@ class SGD : public Optimizer {
         _update.at(layer_index).b = _momentum * _update.at(layer_index).b - _lr * gradients.b;
     }
 public:
-    SGD( const NeuralNet & net, const double lr=0.01, const double momentum=0.0 )\
+    SGD( NeuralNet & net, const double lr=0.01, const double momentum=0.0 )\
         : Optimizer(net, lr), _momentum(momentum) {}
     const double & momentum() const { return _momentum; }
     void momentum( const double & momentum ) { _momentum = momentum; }

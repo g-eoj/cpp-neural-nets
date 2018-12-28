@@ -41,14 +41,12 @@ int main()
 
     // train network
     size_t iterations = 100;
-    float lr = 0.1;
-    float momentum = 0.5;
     Eigen::MatrixXd probs_train;
     Eigen::MatrixXd probs_val;
-    SGD sgd(net, lr, momentum);
+    SGD sgd(net, 0.1, 0.5);
     for ( size_t i = 1; i <= iterations; ++i )
     {
-        sgd.fit(net, x_train, y_train);
+        sgd.fit(x_train, y_train);
         if ( !(i % 10) )
         {
             probs_train = net.probs(x_train);
