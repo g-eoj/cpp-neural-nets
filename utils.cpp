@@ -2,6 +2,23 @@
 
 // ---Preprocessing---
 
+Batcher::Batcher( const unsigned int batch_size,
+                  const Eigen::MatrixXd & X, const Eigen::MatrixXd & y ) :\
+                 _batch_size(batch_size), _batch_begin(0), _X(X), _y(y) {};
+
+void Batcher::batch( Eigen::MatrixXd & X_batch, Eigen::MatrixXd & y_batch )
+{
+    if ( _batch_begin + _batch_size > _y.rows() ) {
+        X_batch = _X.bottomRows(_y.rows() - _batch_begin);
+        y_batch = _y.bottomRows(_y.rows() - _batch_begin);
+        _batch_begin = 0;
+    } else {
+        X_batch = _X.block(_batch_begin, 0, _batch_size, _X.cols());
+        y_batch = _y.block(_batch_begin, 0, _batch_size, _y.cols());
+        _batch_begin += _batch_size;
+    }
+}
+
 void MinMaxScaler::fit ( const Eigen::MatrixXd & data )
 {
     _data_mins = data.colwise().maxCoeff();

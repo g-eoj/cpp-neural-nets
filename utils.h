@@ -12,6 +12,22 @@
 
 // ---Preprocessing---
 
+// Separate corresponding features and labels into batches.
+class Batcher
+{
+    const Eigen::MatrixXd & _X;
+    const Eigen::MatrixXd & _y;
+    const unsigned int _batch_size;
+    unsigned int _batch_begin;
+    Batcher();
+public:
+    Batcher( const unsigned int batch_size, const Eigen::MatrixXd & X, const Eigen::MatrixXd & y );
+    // Store a batch. If batch size is larger than the remaining data,
+    // the batch will only consist of the remaining data.
+    void batch( Eigen::MatrixXd & X_batch, Eigen::MatrixXd & y_batch );
+    const unsigned int batch_size() const { return _batch_size; }
+};
+
 // Scale feature data.
 class MinMaxScaler
 {

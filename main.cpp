@@ -7,7 +7,6 @@
 #include "optimizers.h"
 #include "utils.h"
 
-// TODO batch size
 // TODO dropout
 
 int main()
@@ -33,25 +32,37 @@ int main()
     scaler.transform(x_val);
 
     // define network
-    srand(time(NULL));
+    size_t random_seed = time(NULL);
+    srand(random_seed);
     Hidden h1(x_train.cols(), 10);
     Softmax softmax(10, y_train.cols());
     NeuralNet net( &h1, &softmax );
 
     // train network
-    size_t iterations = 100;
-    SGD sgd(net, 0.1, 0.5);
-    for ( size_t i = 1; i <= 100; ++i )
+    size_t batch_size = 16;
+    size_t epochs = 10;
+    size_t steps_per_epoch = (y_train.rows() + batch_size - 1) / batch_size;
+    size_t epoch = 0;
+    Eigen::MatrixXd x_batch;
+    Eigen::MatrixXd y_batch;
+    SGD sgd(net, 0.03, 0.5);
+    Batcher batcher(batch_size, x_train, y_train);
+    for ( size_t i = 1; i <= epochs * steps_per_epoch; ++i )
     {
-        sgd.fit(x_train, y_train);
-        if ( !(i % 10) )
+        batcher.batch(x_batch, y_batch);
+        sgd.fit(x_batch, y_batch);
+        if ( !(i % steps_per_epoch) )
         {
-            PrintTrainingMetrics(net, i, x_train, x_val, y_train, y_val);
-        }
-        if ( i == iterations / 2 )
-        {
-            sgd.lr(sgd.lr() / 2);
-            sgd.momentum(0.9);
+            epoch += 1;
+            PrintTrainingMetrics(net, epoch, x_train, x_val, y_train, y_val);
+            if ( epoch == epochs / 2 )
+            {
+                sgd.lr(sgd.lr() / 2);
+                sgd.momentum(0.9);
+            }
+            random_seed = rand();
+            ShuffleRows(x_train, random_seed);
+            ShuffleRows(y_train, random_seed);
         }
     }
     std::cout << "\nFinal Validation Accuracy: " ;
