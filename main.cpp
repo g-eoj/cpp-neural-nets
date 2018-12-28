@@ -1,7 +1,6 @@
 // Train a neural network classifier.
 
 #include <Eigen/Core>
-#include <iomanip>
 #include <iostream>
 
 #include "nn.h"
@@ -41,26 +40,13 @@ int main()
 
     // train network
     size_t iterations = 100;
-    Eigen::MatrixXd probs_train;
-    Eigen::MatrixXd probs_val;
     SGD sgd(net, 0.1, 0.5);
-    for ( size_t i = 1; i <= iterations; ++i )
+    for ( size_t i = 1; i <= 100; ++i )
     {
         sgd.fit(x_train, y_train);
         if ( !(i % 10) )
         {
-            probs_train = net.probs(x_train);
-            probs_val = net.probs(x_val);
-            // metrics
-            std::cout << std::setw(5) << i;
-            std::cout << std::fixed << std::setprecision(5);
-            std::cout << " | loss: " << net.loss(probs_train, y_train);
-            std::cout << " | acc: ";
-            std::cout << Accuracy(Predict(y_train), Predict(probs_train));
-            std::cout << " | val_loss: " << net.loss(probs_val, y_val);
-            std::cout << " | val_acc: ";
-            std::cout << Accuracy(Predict(y_val), Predict(probs_val));
-            std::cout << std::endl;
+            PrintTrainingMetrics(net, i, x_train, x_val, y_train, y_val);
         }
         if ( i == iterations / 2 )
         {
@@ -68,8 +54,7 @@ int main()
             sgd.momentum(0.9);
         }
     }
-    probs_val = net.probs(x_val);
     std::cout << "\nFinal Validation Accuracy: " ;
-    std::cout << Accuracy(Predict(y_val), Predict(probs_val));
+    std::cout << Accuracy(Predict(y_val), Predict(net.probs(x_val)));
     std::cout << std::endl;
 }

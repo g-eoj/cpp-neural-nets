@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <exception>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <vector>
 
 #include "nn.h"
@@ -78,6 +80,10 @@ double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
 
 // Predict class integer label based on highest probability from forward pass.
 Eigen::VectorXi Predict( const Eigen::MatrixXd & probs );
+
+void PrintTrainingMetrics( const NeuralNet & net, const size_t & iteration,
+                           const Eigen::MatrixXd & X_train, const Eigen::MatrixXd & X_val,
+                           const Eigen::MatrixXd & y_train, const Eigen::MatrixXd & y_val );
 
 double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon = 1e-06 );
 

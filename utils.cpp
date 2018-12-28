@@ -110,6 +110,23 @@ Eigen::VectorXi Predict( const Eigen::MatrixXd & probs )
     return Predictions;
 }
 
+void PrintTrainingMetrics( const NeuralNet & net, const size_t & iteration,
+                           const Eigen::MatrixXd & X_train, const Eigen::MatrixXd & X_val,
+                           const Eigen::MatrixXd & y_train, const Eigen::MatrixXd & y_val )
+{
+    Eigen::MatrixXd probs_train = net.probs(X_train);
+    Eigen::MatrixXd probs_val = net.probs(X_val);
+    std::cout << std::setw(5) << iteration;
+    std::cout << std::fixed << std::setprecision(5);
+    std::cout << " | loss: " << net.loss(probs_train, y_train);
+    std::cout << " | acc: ";
+    std::cout << Accuracy(Predict(y_train), Predict(probs_train));
+    std::cout << " | val_loss: " << net.loss(probs_val, y_val);
+    std::cout << " | val_acc: ";
+    std::cout << Accuracy(Predict(y_val), Predict(probs_val));
+    std::cout << std::endl;
+}
+
 double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon )
 {
     return ( (M1 - M2).array().abs() /\
