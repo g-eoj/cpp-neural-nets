@@ -15,13 +15,14 @@
 // Separate corresponding features and labels into batches.
 class Batcher
 {
-    const Eigen::MatrixXd & _X;
-    const Eigen::MatrixXd & _y;
+    Eigen::MatrixXd & _X;
+    Eigen::MatrixXd & _y;
     const unsigned int _batch_size;
     unsigned int _batch_begin;
+    bool _shuffle;
     Batcher();
 public:
-    Batcher( const unsigned int batch_size, const Eigen::MatrixXd & X, const Eigen::MatrixXd & y );
+    Batcher( const unsigned int batch_size, Eigen::MatrixXd & X, Eigen::MatrixXd & y, bool shuffle=true );
     // Store a batch. If batch size is larger than the remaining data,
     // the batch will only consist of the remaining data.
     void batch( Eigen::MatrixXd & X_batch, Eigen::MatrixXd & y_batch );

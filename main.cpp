@@ -32,8 +32,7 @@ int main()
     scaler.transform(x_val);
 
     // define network
-    size_t random_seed = time(NULL);
-    srand(random_seed);
+    srand(time(NULL));
     Hidden h1(x_train.cols(), 10);
     Softmax softmax(10, y_train.cols());
     NeuralNet net( &h1, &softmax );
@@ -60,9 +59,6 @@ int main()
                 sgd.lr(sgd.lr() / 2);
                 sgd.momentum(0.9);
             }
-            random_seed = rand();
-            ShuffleRows(x_train, random_seed);
-            ShuffleRows(y_train, random_seed);
         }
     }
     std::cout << "\nFinal Validation Accuracy: " ;

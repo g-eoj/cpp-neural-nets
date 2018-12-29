@@ -111,7 +111,7 @@ int main()
         test.run("TrainTestSplit", (X_train == y_train) && (X_test == y_test) &&\
                  (X_train.rows() == M.rows() - test_size) && (X_test.rows() == test_size));
         // Batcher
-        Batcher batcher(2, M, M);
+        Batcher batcher(2, M, M, false);
         Eigen::MatrixXd x_batch;
         Eigen::MatrixXd y_batch;
         for ( size_t i = 0; i <= M.rows(); ++i )
@@ -121,7 +121,13 @@ int main()
         bool test_1 = (M.bottomRows(1) == x_batch) && (x_batch == y_batch);
         batcher.batch(x_batch, y_batch);
         bool test_2 = (M.topRows(2) == x_batch) && (x_batch == y_batch);
-        test.run("Batcher", test_1 && test_2);
+        Batcher batcher_shuf(5, M, M, true);
+        for ( size_t i = 0; i < 3; ++i )
+        {
+            batcher_shuf.batch(x_batch, y_batch);
+        }
+        bool test_3 = (x_batch == y_batch);
+        test.run("Batcher", test_1 && test_2 && test_3);
     }
     total_passed += test.pass_count();
     total_failed += test.fail_count();

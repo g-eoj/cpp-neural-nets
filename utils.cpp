@@ -3,8 +3,14 @@
 // ---Preprocessing---
 
 Batcher::Batcher( const unsigned int batch_size,
-                  const Eigen::MatrixXd & X, const Eigen::MatrixXd & y ) :\
-                 _batch_size(batch_size), _batch_begin(0), _X(X), _y(y) {};
+                  Eigen::MatrixXd & X, Eigen::MatrixXd & y, bool shuffle ) :\
+                 _batch_size(batch_size), _batch_begin(0), _X(X), _y(y), _shuffle(shuffle)
+{
+    if ( batch_size >= y.rows() )
+    {
+        throw std::runtime_error("batch_size should be less than y.rows().");
+    }
+};
 
 void Batcher::batch( Eigen::MatrixXd & X_batch, Eigen::MatrixXd & y_batch )
 {
@@ -12,6 +18,12 @@ void Batcher::batch( Eigen::MatrixXd & X_batch, Eigen::MatrixXd & y_batch )
         X_batch = _X.bottomRows(_y.rows() - _batch_begin);
         y_batch = _y.bottomRows(_y.rows() - _batch_begin);
         _batch_begin = 0;
+        if ( _shuffle )
+        {
+            size_t random_seed = rand();
+            ShuffleRows(_X, random_seed);
+            ShuffleRows(_y, random_seed);
+        }
     } else {
         X_batch = _X.block(_batch_begin, 0, _batch_size, _X.cols());
         y_batch = _y.block(_batch_begin, 0, _batch_size, _y.cols());
