@@ -50,13 +50,6 @@ public:
     }
 };
 
-void random_data( size_t num_examples, size_t num_features, size_t num_classes,\
-                  Eigen::MatrixXd & X, Eigen::VectorXi & y )
-{
-    X.setRandom(num_examples, num_features);
-    y = (Eigen::VectorXf::Random(num_examples).array().abs() * num_classes).cast<int>();
-}
-
 int main()
 {
     srand(time(NULL));

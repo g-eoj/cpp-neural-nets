@@ -102,6 +102,12 @@ void PrintTrainingMetrics( const NeuralNet & net, const size_t & iteration,
                            const Eigen::MatrixXd & X_train, const Eigen::MatrixXd & X_val,
                            const Eigen::MatrixXd & y_train, const Eigen::MatrixXd & y_val );
 
+// Generate random feature and label data.
+// Feature matrix `X` is filled with random numbers from [0, 1].
+// Label vector `y` is filled with random integers from [0, `num_classes`).
+void RandomData( size_t num_examples, size_t num_features, size_t num_classes,\
+                 Eigen::MatrixXd & X, Eigen::VectorXi & y );
+
 double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon = 1e-06 );
 
 // ---End Evaluation---

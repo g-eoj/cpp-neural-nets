@@ -156,6 +156,13 @@ void PrintTrainingMetrics( const NeuralNet & net, const size_t & iteration,
     std::cout << std::endl;
 }
 
+void RandomData( size_t num_examples, size_t num_features, size_t num_classes,\
+                 Eigen::MatrixXd & X, Eigen::VectorXi & y )
+{
+    X = Eigen::MatrixXd::Random(num_examples, num_features).array().abs();
+    y = (Eigen::VectorXf::Random(num_examples).array().abs() * num_classes).cast<int>();
+}
+
 double RelativeError( const Eigen::MatrixXd & M1, const Eigen::MatrixXd & M2, const double & epsilon )
 {
     return ( (M1 - M2).array().abs() /\
