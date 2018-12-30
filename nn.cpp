@@ -1,6 +1,6 @@
 #include "nn.h"
 
-Layer::Layer( unsigned int input_size, unsigned int output_size )
+Layer::Layer( unsigned int input_size, unsigned int output_size ) : _training(false)
 {
     double limit = sqrt(6. / ((double)input_size + (double)output_size)); // glorot uniform
     _W = Eigen::MatrixXd::Random(input_size, output_size).array() * limit;
@@ -53,11 +53,35 @@ LayerGradients Softmax::backward_pass( const Eigen::MatrixXd & input, const Eige
     return gradients;
 }
 
-Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input ) const
+Eigen::MatrixXd Dropout::forward_pass( const Eigen::MatrixXd & input ) const
+{
+    if ( _training )
+    {
+        Eigen::MatrixXf keep_probs(input.rows(), input.cols());
+        keep_probs = keep_probs.setRandom().array().abs();
+        return (keep_probs.array() > _drop_rate).select(input, 0) / (1 - _drop_rate);
+    }
+    return input;
+}
+
+LayerGradients Dropout::backward_pass( const Eigen::MatrixXd & input, const Eigen::MatrixXd & output, const Eigen::MatrixXd & upstream_gradient ) const
+{
+    LayerGradients gradients;
+    if ( _training )
+    {
+        gradients.input = (output.array() != 0).select(upstream_gradient, 0) / (1 - _drop_rate);
+        return gradients;
+    }
+    gradients.input = upstream_gradient;
+    return gradients;
+}
+
+Eigen::MatrixXd NeuralNet::probs( const Eigen::MatrixXd & input, bool training ) const
 {
     Eigen::MatrixXd output = input;
     for ( auto layer = _layers.begin(); layer != _layers.end(); ++layer )
     {
+        (**layer).training(training);
         output = (**layer).forward_pass(output);
     }
     return output;
@@ -70,6 +94,7 @@ void NeuralNet::gradients( const Eigen::MatrixXd & input, const Eigen::MatrixXd 
     inputs.push_back(input);
     for ( auto layer = _layers.begin(); layer != _layers.end(); ++layer )
     {
+        ((**layer)).training(true);
         inputs.push_back((**layer).forward_pass(inputs.back()));
     }
 
@@ -78,6 +103,7 @@ void NeuralNet::gradients( const Eigen::MatrixXd & input, const Eigen::MatrixXd 
     // softmax
     _gradients.at(layer_index) = _layers.at(layer_index)->\
         backward_pass(inputs.at(layer_index), inputs.back(), true_probs);
+    _layers.at(layer_index)->training(false);
     // hidden layers
     while ( layer_index != 0 )
     {
@@ -86,6 +112,7 @@ void NeuralNet::gradients( const Eigen::MatrixXd & input, const Eigen::MatrixXd 
             backward_pass(inputs.at(layer_index),\
                           inputs.at(layer_index + 1),\
                           _gradients.at(layer_index + 1).input);
+        _layers.at(layer_index)->training(false);
     }
 }
 

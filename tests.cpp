@@ -52,13 +52,13 @@ public:
 
 int main()
 {
-    srand(time(NULL));
     unsigned int total_passed = 0;
     unsigned int total_failed = 0;
 
     // Util tests
     Test test("Util Functions");
     {
+        srand(time(NULL));
         // OneHot
         Eigen::VectorXi labels(5);
         Eigen::MatrixXd labels_oh(5, 3);
@@ -173,6 +173,34 @@ int main()
         LayerGradients h1_grads = h1.backward_pass(x, h1_out, h1_grad);
         test.run("Hidden Backward Pass", h1_grads.W.isApprox(W1_grad) &&\
                                          h1_grads.b.isApprox(b1_grad));
+
+        bool dropout_forward_pass_test;
+        bool dropout_backward_pass_test;
+        Eigen::MatrixXd M = Eigen::MatrixXd::Ones(30, 31);
+        srand(time(NULL));
+
+        Dropout d1(0.2);
+        dropout_forward_pass_test = (d1.forward_pass(M) == M);
+        d1.training(true);
+        dropout_forward_pass_test = dropout_forward_pass_test &&\
+            (std::abs((d1.forward_pass(M)).mean() - 1) < 0.1);
+        Eigen::MatrixXd d1_out = d1.forward_pass(M);
+        LayerGradients dropout_grads_1 = d1.backward_pass(M, d1_out, M);
+        dropout_backward_pass_test = dropout_grads_1.input.isApprox(d1_out * 0.8, 1e-08);
+
+        Dropout d2(0.5);
+        dropout_forward_pass_test = dropout_forward_pass_test &&\
+            (d2.forward_pass(M) == M);
+        d2.training(true);
+        dropout_forward_pass_test = dropout_forward_pass_test &&\
+            (std::abs((d2.forward_pass(M)).mean() - 1) < 0.1);
+        Eigen::MatrixXd d2_out = d2.forward_pass(M);
+        LayerGradients dropout_grads_2 = d2.backward_pass(M, d2_out, M);
+        dropout_backward_pass_test = dropout_backward_pass_test &&\
+            dropout_grads_2.input.isApprox(d2_out * 0.5, 1e-08);
+
+        test.run("Dropout Forward Pass", dropout_forward_pass_test);
+        test.run("Dropout Backward Pass", dropout_forward_pass_test);
     }
     total_passed += test.pass_count();
     total_failed += test.fail_count();
@@ -239,15 +267,16 @@ int main()
     // End two layer net with fixed data
 
     // Two layer net with random data
-    test.reset("Two Layer Random Data");
+    test.reset("Multi-Layer Random Data");
     {
+        srand(time(NULL));
         size_t num_examples = 30;
         size_t num_features = 10;
         size_t num_classes = 10;
         size_t hidden_size = 10;
         Eigen::MatrixXd X;
         Eigen::VectorXi y;
-        random_data(num_examples, num_features, num_classes, X, y);
+        RandomData(num_examples, num_features, num_classes, X, y);
         Eigen::MatrixXd y_oh = OneHot(y);
         Hidden h1(X.cols(), hidden_size);
         Softmax softmax(hidden_size, y_oh.cols());
@@ -259,10 +288,30 @@ int main()
         test.run("Gradient Check b1", GradCheck(two_layer_net, 0, LayerParams::BIAS, X, y_oh) < epsilon);
         test.run("Gradient Check W2", GradCheck(two_layer_net, 1, LayerParams::WEIGHTS, X, y_oh) < epsilon);
         test.run("Gradient Check b2", GradCheck(two_layer_net, 1, LayerParams::BIAS, X, y_oh) < epsilon);
+        // Dropout
+        epsilon = 1e-08;
+        size_t seed = rand();
+        Dropout d1(0.2);
+        Hidden h2(hidden_size, hidden_size);
+        Dropout d2(0.5);
+        NeuralNet three_layer_dropout_net( &h1, &d1, &h2, &d2, &softmax );
+        srand(seed);
+        three_layer_dropout_net.gradients(X, y_oh);
+        test.run("Dropout Gradient Check W1", GradCheck(three_layer_dropout_net, 0, LayerParams::WEIGHTS, X, y_oh, seed, 1e-05) < epsilon);
+        test.run("Dropout Gradient Check b1", GradCheck(three_layer_dropout_net, 0, LayerParams::BIAS, X, y_oh, seed, 1e-05) < epsilon);
+        test.run("Dropout Gradient Check W2", GradCheck(three_layer_dropout_net, 2, LayerParams::WEIGHTS, X, y_oh, seed, 1e-05) < epsilon);
+        test.run("Dropout Gradient Check b2", GradCheck(three_layer_dropout_net, 2, LayerParams::BIAS, X, y_oh, seed, 1e-05) < epsilon);
+        test.run("Dropout Gradient Check W3", GradCheck(three_layer_dropout_net, 4, LayerParams::WEIGHTS, X, y_oh, seed, 1e-05) < epsilon);
+        test.run("Dropout Gradient Check b3", GradCheck(three_layer_dropout_net, 4, LayerParams::BIAS, X, y_oh, seed, 1e-05) < epsilon);
     }
     total_passed += test.pass_count();
     total_failed += test.fail_count();
     test.report();
+    if ( test.fail_count() > 0 )
+    {
+        std::cout << "Some 'Multi-Layer Random Data' tests may fail a proper implementation because of test randomness." << std::endl;
+        std::cout << "Run the tests multiple times to see if they consistently fail." << std::endl << std::endl;
+    }
     // End two layer net with random data
 
     std::cout << "Totals: ";

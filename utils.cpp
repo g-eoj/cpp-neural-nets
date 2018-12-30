@@ -100,7 +100,7 @@ double Accuracy( const Eigen::VectorXi & yTrue, const Eigen::VectorXi & yPred )
 
 double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
                   const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs,
-                  const double & h )
+                  const size_t random_seed, const double & h )
 {
     const LayerGradients & analytic_grads = net.gradients().at(layer_index);
     const size_t rc = ( lp == LayerParams::WEIGHTS ) ? analytic_grads.W.rows() : analytic_grads.b.size();
@@ -113,11 +113,13 @@ double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
     {
         h_matrix(i) = h;
         net.update(layer_index, lp, h_matrix);
-        lp_plus_h = net.loss(net.probs(input), true_probs);
+        srand(random_seed);
+        lp_plus_h = net.loss(net.probs(input, true), true_probs);
 
         h_matrix(i) = -h * 2;
         net.update(layer_index, lp, h_matrix);
-        lp_minus_h = net.loss(net.probs(input), true_probs);
+        srand(random_seed);
+        lp_minus_h = net.loss(net.probs(input, true), true_probs);
 
         h_matrix(i) = h;
         net.update(layer_index, lp, h_matrix);

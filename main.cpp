@@ -7,8 +7,6 @@
 #include "optimizers.h"
 #include "utils.h"
 
-// TODO dropout
-
 int main()
 {
     std::string path = "wine.data"; // https://archive.ics.uci.edu/ml/datasets/wine
@@ -25,8 +23,8 @@ int main()
     std::cout << "  Val set size: " << y_val.rows() << std::endl;
     std::cout << std::endl;
 
-    // scale features to be between -1 and 1
-    MinMaxScaler scaler(-1, 1);
+    // scale features to be between 0 and 1
+    MinMaxScaler scaler(0, 1);
     scaler.fit(x_train);
     scaler.transform(x_train);
     scaler.transform(x_val);
@@ -34,17 +32,18 @@ int main()
     // define network
     srand(time(NULL));
     Hidden h1(x_train.cols(), 10);
+    Dropout d1(0.5);
     Softmax softmax(10, y_train.cols());
-    NeuralNet net( &h1, &softmax );
+    NeuralNet net( &h1, &d1, &softmax );
 
     // train network
-    size_t batch_size = 16;
-    size_t epochs = 10;
+    size_t batch_size = 8;
+    size_t epochs = 15;
     size_t steps_per_epoch = (y_train.rows() + batch_size - 1) / batch_size;
     size_t epoch = 0;
     Eigen::MatrixXd x_batch;
     Eigen::MatrixXd y_batch;
-    SGD sgd(net, 0.03, 0.5);
+    SGD sgd(net, 0.04, 0.5);
     Batcher batcher(batch_size, x_train, y_train);
     for ( size_t i = 1; i <= epochs * steps_per_epoch; ++i )
     {
@@ -54,9 +53,9 @@ int main()
         {
             epoch += 1;
             PrintTrainingMetrics(net, epoch, x_train, x_val, y_train, y_val);
+            sgd.lr(std::max(sgd.lr() - 0.002, 0.001));
             if ( epoch == epochs / 2 )
             {
-                sgd.lr(sgd.lr() / 2);
                 sgd.momentum(0.9);
             }
         }

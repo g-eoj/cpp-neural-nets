@@ -90,10 +90,10 @@ double Accuracy( const Eigen::VectorXi & yTrue, const Eigen::VectorXi & yPred );
 // Returns relative error between numerical gradient and analytic gradient.
 // This function is computationally expensive. The only reason to use it is to
 // check if each Layer::backward_pass() is implemented correctly. Update the
-// gradients in `net` with `net.probs(input, true_probs)` before passing.
+// gradients in `net` with `net.gradients(input, true_probs)` before passing.
 double GradCheck( NeuralNet & net, const size_t layer_index, LayerParams lp,\
                   const Eigen::MatrixXd & input, const Eigen::MatrixXd & true_probs,
-                  const double & h = 1e-06 );
+                  const size_t random_seed = 1, const double & h = 1e-06 );
 
 // Predict class integer label based on highest probability from forward pass.
 Eigen::VectorXi Predict( const Eigen::MatrixXd & probs );
